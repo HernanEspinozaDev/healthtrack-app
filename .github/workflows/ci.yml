@@ -1,4 +1,4 @@
-name: Java CI with Maven
+name: Java CI with Maven and SonarCloud
 
 on:
   push:
@@ -9,31 +9,44 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    # 1. Clona el repositorio en la máquina virtual de GitHub
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build and run tests
+        run: mvn clean verify
 
-    # 2. Configura el entorno de Java 17
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-
-    # 3. Construye el JAR pero salta las pruebas (aún no hay servidor)
-    - name: Install Dependencies and Build JAR
-      run: mvn clean package -DskipTests
-
-    # 4. Inicia la aplicación en segundo plano
-    - name: Start Application in Background
-      run: |
-        java -jar target/healthtrack-app-1.0-SNAPSHOT-jar-with-dependencies.jar &
-        sleep 15 # Dar tiempo extra al servidor para que inicie en el entorno de GitHub
-
-    # 5. Ejecuta las pruebas (ahora sí, con el servidor corriendo)
-    - name: Run Tests
-      run: mvn test
-
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: build-and-test # Este job depende del anterior
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Necesario para un análisis preciso
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: 'temurin'
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Analyze with SonarCloud
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, necesario
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # El token que configuraste
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=com.healthtrack:healthtrack-app
