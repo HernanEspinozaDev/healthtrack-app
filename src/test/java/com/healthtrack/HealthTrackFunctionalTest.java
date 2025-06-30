@@ -24,13 +24,18 @@ public class HealthTrackFunctionalTest {
     @BeforeEach
     void setUp() {
         ChromeOptions options = new ChromeOptions();
-        // options.addArguments("--headless");
+        
+        // --- ¡¡¡CORRECCIÓN PARA GITHUB ACTIONS AQUÍ!!! ---
+        // Habilitamos el modo "headless" y añadimos argumentos para estabilidad en CI/CD.
+        options.addArguments("--headless"); // ¡LA LÍNEA MÁS IMPORTANTE!
         options.addArguments("--disable-gpu");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--no-sandbox"); // Requerido para correr como root en contenedores Docker.
+        options.addArguments("--disable-dev-shm-usage"); // Previene errores por falta de memoria en /dev/shm.
+        options.addArguments("--window-size=1920,1080"); // Especificar un tamaño de ventana es buena práctica.
+        
         driver = new ChromeDriver(options);
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        driver.manage().window().maximize();
+        // driver.manage().window().maximize(); // No es necesario en modo headless si ya definimos el tamaño.
     }
 
     @Test
@@ -42,11 +47,6 @@ public class HealthTrackFunctionalTest {
         driver.findElement(By.id("initialWeight")).sendKeys("70.0");
         driver.findElement(By.id("initialWeight")).submit();
 
-        // --- AJUSTE FINAL ---
-        // La prueba real de que estamos en el dashboard es la siguiente línea,
-        // que espera a que aparezca el campo 'newWeightInput'.
-        // Por lo tanto, la comprobación de la URL era redundante y la eliminamos
-        // para evitar el fallo de timing misterioso.
         WebElement newWeightInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("newWeightInput")));
         newWeightInput.sendKeys("72.5");
         
