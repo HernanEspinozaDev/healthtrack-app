@@ -1,52 +1,58 @@
+# Nombre del pipeline, visible en la pestaña "Actions" de GitHub
 name: Java CI with Maven and SonarCloud
 
+# Define cuándo se ejecutará el pipeline
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
+# Define los trabajos (jobs) que se ejecutarán
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  # Solo tenemos un job para asegurar que todo se ejecute en la misma máquina
+  build-test-and-analyze:
+    name: Build, Test and Analyze
+    runs-on: ubuntu-latest # Se ejecutará en una máquina virtual de Linux
+
     steps:
-      - uses: actions/checkout@v3
+      # Paso 1: Descargar tu código del repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Necesario para un análisis de SonarCloud más preciso
+
+      # Paso 2: Configurar el entorno de Java 17
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: maven
-      - name: Build and run tests
-        run: mvn clean verify
+          cache: maven # Habilita el caché para acelerar futuras ejecuciones
 
-  sonarcloud:
-    name: SonarCloud Analysis
-    runs-on: ubuntu-latest
-    needs: build-and-test # Este job depende del anterior
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Necesario para un análisis preciso
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: "17"
-          distribution: 'temurin'
+      # Paso 3: Cache para SonarCloud (opcional, pero acelera las cosas)
       - name: Cache SonarCloud packages
         uses: actions/cache@v3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Analyze with SonarCloud
+
+      # Paso 4: CONSTRUIR el JAR, pero saltando las pruebas (aún no hay servidor)
+      - name: Install Dependencies and Build JAR
+        run: mvn clean package -DskipTests
+
+      # Paso 5: INICIAR el servidor en segundo plano
+      - name: Start Application in Background
+        run: |
+          java -jar target/healthtrack-app-1.0-SNAPSHOT-jar-with-dependencies.jar &
+          sleep 15 # Damos 15 segundos para que el servidor inicie completamente
+
+      # Paso 6: EJECUTAR las pruebas y el ANÁLISIS de Sonar
+      # Maven ejecutará la fase 'verify' (que incluye 'test') y luego el plugin de sonar.
+      # Como el servidor ya está corriendo (paso 5), las pruebas pasarán.
+      - name: Run Tests and Analyze with SonarCloud
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, necesario
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # El token que configuraste
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=HernanEspinozaDev_healthtrack-app
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, necesario para SonarCloud
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # El token que configuraste en los secrets
+        run: mvn verify sonar:sonar -Dsonar.projectKey=HernanEspinozaDev_healthtrack-app
