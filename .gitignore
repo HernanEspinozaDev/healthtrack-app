@@ -1,0 +1,20 @@
+# Archivos compilados de Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Carpeta de salida de Maven
+/target/
+
+# Archivos de log
+*.log
+
+# Archivos de configuración de IDEs
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

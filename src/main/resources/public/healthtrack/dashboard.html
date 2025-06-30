@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthTrack - Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input[type="number"] { width: calc(100% - 22px); padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Dashboard de Usuario: <span id="dashboardUsername"></span></h2>
+        <p>Peso Actual: <span id="currentWeightDisplay"></span> kg</p>
+
+        <h3>Actualizar Peso</h3>
+        <label for="newWeightInput">Nuevo Peso (kg):</label>
+        <input type="number" id="newWeightInput" step="0.1" required><br>
+        <button id="updateWeightButton">Actualizar Peso</button>
+        <div id="updateMessage" style="color: green; margin-top: 10px;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/healthtrack/api/user/current')
+                .then(response => response.json())
+                .then(data => {
+                    // --- ¡¡¡LA CORRECCIÓN FINAL ESTÁ AQUÍ!!! ---
+                    // Comprobamos 'data.nombre' para que coincida con el campo de la clase Usuario.java
+                    if (data.nombre) { 
+                        document.getElementById('dashboardUsername').textContent = data.nombre;
+                        document.getElementById('currentWeightDisplay').textContent = data.peso;
+                    } else {
+                        // Si no hay datos de usuario, algo salió mal, volver a registrarse.
+                        window.location.href = '/healthtrack/register.html';
+                    }
+                });
+        });
+
+        document.getElementById('updateWeightButton').addEventListener('click', function() {
+            const newWeightInput = document.getElementById('newWeightInput');
+            const newWeight = parseFloat(newWeightInput.value);
+
+            if (isNaN(newWeight) || newWeight <= 0) {
+                document.getElementById('updateMessage').textContent = 'Por favor, introduce un peso válido.';
+                return;
+            }
+            
+            fetch('/healthtrack/api/user/updateWeight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'newWeight=' + newWeight
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Error en el servidor');
+                return response.json();
+            })
+            .then(data => {
+                const updatedWeight = data.newWeight;
+                document.getElementById('currentWeightDisplay').textContent = updatedWeight;
+                document.getElementById('updateMessage').textContent = '¡Peso actualizado exitosamente!';
+                newWeightInput.value = '';
+            })
+            .catch(error => {
+                document.getElementById('updateMessage').textContent = 'Error al actualizar el peso.';
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
