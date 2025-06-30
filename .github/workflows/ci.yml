@@ -49,4 +49,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, necesario
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # El token que configuraste
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=com.healthtrack:healthtrack-app
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=HernanEspinozaDev_healthtrack-app
