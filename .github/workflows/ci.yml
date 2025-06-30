@@ -50,9 +50,12 @@ jobs:
 
       # Paso 6: EJECUTAR las pruebas y el ANÁLISIS de Sonar
       # Maven ejecutará la fase 'verify' (que incluye 'test') y luego el plugin de sonar.
-      # Como el servidor ya está corriendo (paso 5), las pruebas pasarán.
       - name: Run Tests and Analyze with SonarCloud
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, necesario para SonarCloud
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # El token que configuraste en los secrets
-        run: mvn verify sonar:sonar -Dsonar.projectKey=HernanEspinozaDev_healthtrack-app
+        run: >
+          mvn verify sonar:sonar
+          -Dsonar.projectKey=HernanEspinozaDev_healthtrack-app
+          -Dsonar.organization=hernanespinozadev
+          -Dsonar.host.url=https://sonarcloud.io
